@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Email → Tasks • Demo UI</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#6ee7b7; --glass: rgba(255,255,255,0.04);
+      --glass-2: rgba(255,255,255,0.02); --pink:#ff7ab6; --yellow:#ffd66b;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background: radial-gradient(1200px 600px at 10% 10%, rgba(99,102,241,0.08), transparent 6%),
+        radial-gradient(800px 400px at 90% 90%, rgba(99,102,241,0.04), transparent 6%), var(--bg);
+      color:#e6eef6; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .wrap{max-width:1200px;margin:32px auto;padding:28px;display:grid;grid-template-columns:1fr 460px;gap:20px}
+    header{grid-column:1/-1;display:flex;align-items:center;gap:16px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7cc2ff);display:flex;align-items:center;justify-content:center;color:#042031;font-weight:700;font-size:20px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+    h1{font-size:20px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    /* Left pane - input */
+    .panel{background:linear-gradient(180deg,var(--glass),var(--glass-2));border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:14px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    .panel h2{margin:0 0 8px 0}
+    textarea{width:100%;min-height:320px;background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:14px;border-radius:10px;color:inherit;font-size:14px;resize:vertical}
+    .controls{display:flex;gap:10px;margin-top:12px;align-items:center}
+    button{background:linear-gradient(90deg,var(--accent),#7cc2ff);border:none;color:#042031;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(110,231,183,0.08)}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03);box-shadow:none}
+    .small{padding:8px 10px;font-size:13px}
+
+    /* Right pane - results */
+    .summary{display:flex;flex-direction:column;gap:12px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    .meta{display:flex;gap:10px;align-items:center}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:20px;font-size:13px;color:var(--muted)}
+
+    .tasks{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+
+    .task{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);border:1px solid rgba(255,255,255,0.02)}
+    .task .title{font-weight:600}
+    .task .meta{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .badge{padding:6px 8px;border-radius:8px;font-size:12px}
+    .prio-high{background:linear-gradient(90deg,var(--pink),#ffb0d6);color:#3b0723}
+    .prio-med{background:linear-gradient(90deg,var(--yellow),#fff1c9);color:#5a3e00}
+    .prio-low{background:linear-gradient(90deg,#c8f7e3,#e6fff6);color:#02322a}
+
+    .people{display:flex;gap:6px}
+    .avatar{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ed6ea0);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#061018}
+
+    .empty{color:var(--muted);font-size:13px}
+
+    footer{grid-column:1/-1;margin-top:6px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+
+    /* Responsive */
+    @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:18px}.panel textarea{min-height:220px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">AE</div>
+      <div>
+        <h1>AI Email → Tasks • Beautiful UI (Demo)</h1>
+        <p class="lead">Paste any email and get action items, deadlines, people, priorities and a summary — editable, exportable.</p>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Paste email</h2>
+      <textarea id="emailInput" placeholder="Paste the full email here...">Hi team,
+
+Please review the Q3 marketing deck and send feedback by Friday, Oct 10. Assign content updates to Rahul and design tweaks to Priya. Also, arrange a client call next Wednesday (Oct 14) with the Sales team. Raj should share the latest numbers by 2025-10-08. Urgent: finalize the budget estimate by 2025-10-06.
+
+Thanks,
+Anita
+anita@company.com
+</textarea>
+
+      <div class="controls">
+        <button id="parseBtn">✨ Parse email</button>
+        <button class="btn-ghost small" id="clearBtn">Clear</button>
+        <button class="btn-ghost small" id="sampleBtn">Load sample</button>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="small btn-ghost" id="exportJson">Export JSON</button>
+          <button class="small" id="copyTasks">Copy tasks</button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;color:var(--muted);font-size:13px">Tip: the parser uses simple heuristics — edit results on the right before exporting.</div>
+    </section>
+
+    <aside class="summary">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:13px;color:var(--muted)">Summary</div>
+            <div id="summaryText" style="font-weight:600;margin-top:6px">No email parsed yet — click "Parse email".</div>
+          </div>
+          <div class="chips" id="summaryMeta"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;color:var(--muted)">Action items</div>
+          <div style="font-size:13px;color:var(--muted)" id="countTaken">0 tasks</div>
+        </div>
+        <div class="tasks" id="tasksList">
+          <div class="empty">No tasks yet — parse an email to auto-generate tasks.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;color:var(--muted)">People involved</div>
+          <div style="font-size:13px;color:var(--muted)" id="peopleCount">0</div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap" id="peopleList">
+          <!-- avatars injected here -->
+        </div>
+      </div>
+    </aside>
+
+    <footer>
+      <div>Made with ❤️ • Paste an email and try parsing.</div>
+      <div style="font-size:13px;color:var(--muted)">Single-file demo • Edit the extraction rules in JS</div>
+    </footer>
+  </div>
+
+<script>
+  // Simple heuristic parser to demo functionality. Not an AI model — replace with your agent.
+  const emailInput = document.getElementById('emailInput');
+  const parseBtn = document.getElementById('parseBtn');
+  const tasksList = document.getElementById('tasksList');
+  const summaryText = document.getElementById('summaryText');
+  const summaryMeta = document.getElementById('summaryMeta');
+  const countTaken = document.getElementById('countTaken');
+  const peopleList = document.getElementById('peopleList');
+  const peopleCount = document.getElementById('peopleCount');
+  const clearBtn = document.getElementById('clearBtn');
+  const sampleBtn = document.getElementById('sampleBtn');
+  const exportJson = document.getElementById('exportJson');
+  const copyTasks = document.getElementById('copyTasks');
+
+  function extractDates(text){
+    const dates = [];
+    // common ISO
+    const iso = text.match(/\b\d{4}-\d{2}-\d{2}\b/g);
+    if(iso) dates.push(...iso);
+    // dd Month yyyy or Month dd
+    const pretty = text.match(/\b(?:\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s*\d{0,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,?\s*\d{4})?)\b/gi);
+    if(pretty) dates.push(...pretty);
+    // relative dates (simple)
+    const relative = text.match(/\b(?:tomorrow|today|next week|next month|by\s+\w+|by\s+\d{1,2})\b/gi);
+    if(relative) dates.push(...relative);
+    return Array.from(new Set(dates));
+  }
+
+  function extractPeople(text){
+    const people = new Set();
+    // emails
+    const emails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+    if(emails) emails.forEach(e=>people.add(e));
+    // named assignees: "assign ... to X" or "to X and Y"
+    const assignMatches = text.match(/assign(?:ed)?\s+(?:tasks|content|the|updates)?\s*(?:to|:)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:,?\s*(?:and\s)?[A-Z][a-z]+)*)/g);
+    if(assignMatches){
+      assignMatches.forEach(m=>{
+        const names = m.match(/[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/g);
+        if(names) names.forEach(n=>people.add(n));
+      })
+    }
+    // lines like "Assign content updates to Rahul and design tweaks to Priya"
+    const toMatches = text.match(/to\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s*(?:and|,)\s*[A-Z][a-z]+)*)/g);
+    if(toMatches){
+      toMatches.forEach(m=>{
+        const names = m.match(/[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/g);
+        if(names) names.forEach(n=>people.add(n));
+      })
+    }
+    return Array.from(people);
+  }
+
+  function extractTasks(text){
+    const tasks = [];
+    // split into lines and sentences
+    const lines = text.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    // sentence splitter (naive)
+    const sentences = text.split(/(?<=[\.\?\!])\s+/).map(s=>s.trim()).filter(Boolean);
+
+    // heuristics: find imperative sentences or lines with deadlines/assignments/verbs
+    const candidates = [...lines, ...sentences];
+    candidates.forEach(c =>{
+      // ignore signature lines
+      if(/^(thanks|regards|cheers|best|thanks,)/i.test(c)) return;
+      // pick lines containing verbs that often indicate tasks
+      if(/\b(review|send|assign|arrange|finalize|share|schedule|book|call|follow up|follow-up|update|prepare|submit|complete|approve|fix)\b/i.test(c) || /by\s+\w+/i.test(c) || /\d{4}-\d{2}-\d{2}/.test(c)){
+        // find date
+        const dates = extractDates(c);
+        // find people mentioned
+        const people = (c.match(/[A-Z][a-z]+/g) || []).filter(w=>!/^On|I|The|Please|Thanks$/.test(w)).slice(0,4);
+        // priority: urgent/ASAP or 'urgent:'
+        let prio = 'low';
+        if(/urgent|asap|immediately|priority/i.test(c)) prio='high';
+        else if(/by\s+\w+|due|deadline|next week|next month/i.test(c)) prio='med';
+        tasks.push({raw:c, title: c.replace(/^\s*[-•*\d\.]+\s*/,'').slice(0,120), deadline: dates[0]||'', people: people, priority: prio});
+      }
+    })
+
+    // fallback: if none detected, create a single task: "Read email".
+    if(tasks.length===0){
+      tasks.push({raw:text.slice(0,140), title:'Read & action the email', deadline:'', people:[], priority:'low'})
+    }
+    return tasks;
+  }
+
+  function render(tasks, summary, people){
+    tasksList.innerHTML='';
+    if(tasks.length===0){
+      tasksList.innerHTML='<div class="empty">No tasks found.</div>'; return;
+    }
+    tasks.forEach((t, idx)=>{
+      const div = document.createElement('div'); div.className='task';
+      const title = document.createElement('div'); title.className='title'; title.contentEditable=true; title.innerText=t.title;
+      const meta = document.createElement('div'); meta.className='meta';
+
+      const deadline = document.createElement('div'); deadline.className='badge'; deadline.contentEditable=true; deadline.innerText = t.deadline || 'No deadline';
+      deadline.title='Click to edit deadline';
+      const pr = document.createElement('div'); pr.className='badge '+(t.priority==='high'?'prio-high':(t.priority==='med'?'prio-med':'prio-low')); pr.contentEditable=false; pr.innerText = (t.priority==='high'?'High':(t.priority==='med'?'Medium':'Low'));
+
+      const peopleDiv = document.createElement('div'); peopleDiv.className='people';
+      (t.people||[]).slice(0,4).forEach(p=>{
+        const a = document.createElement('div'); a.className='avatar'; a.innerText = (p.split(' ')[0]||p).slice(0,2).toUpperCase(); peopleDiv.appendChild(a);
+      })
+
+      const del = document.createElement('button'); del.className='btn-ghost small'; del.style.padding='6px 8px'; del.innerText='Delete';
+      del.onclick = ()=>{ div.remove(); updateCounts(); }
+
+      meta.appendChild(peopleDiv); meta.appendChild(deadline); meta.appendChild(pr); meta.appendChild(del);
+      div.appendChild(title); div.appendChild(meta);
+      tasksList.appendChild(div);
+    })
+    updateCounts();
+  }
+
+  function updateCounts(){
+    const currentTasks = tasksList.querySelectorAll('.task').length;
+    countTaken.innerText = currentTasks + ' task' + (currentTasks===1?'':'s');
+
+    const avatars = peopleList.querySelectorAll('.avatar');
+    peopleCount.innerText = avatars.length;
+  }
+
+  parseBtn.addEventListener('click', ()=>{
+    const text = emailInput.value.trim();
+    if(!text){ alert('Paste an email first.'); return }
+    const tasks = extractTasks(text);
+    const people = extractPeople(text);
+    // build a short summary
+    const firstLine = text.split('\n').find(l=>l.trim().length>0) || '';
+    const summary = firstLine.length>80 ? firstLine.slice(0,80)+'...' : firstLine;
+
+    summaryText.innerText = summary;
+    summaryMeta.innerHTML = '';
+    const datesFound = extractDates(text);
+    if(datesFound.length) summaryMeta.innerHTML += `<div class="chip">Dates: ${datesFound.join(', ')}</div>`;
+    const pplChip = document.createElement('div'); pplChip.className='chip'; pplChip.innerText = 'People: ' + (people.length||'0'); summaryMeta.appendChild(pplChip);
+
+    // render people
+    peopleList.innerHTML='';
+    people.forEach(p=>{
+      const av = document.createElement('div'); av.className='avatar'; av.innerText = (p.split('@')[0]||p).split('.')[0].slice(0,2).toUpperCase(); peopleList.appendChild(av);
+    })
+
+    render(tasks, summary, people);
+  })
+
+  clearBtn.addEventListener('click', ()=>{ emailInput.value=''; summaryText.innerText='No email parsed yet — click "Parse email".'; summaryMeta.innerHTML=''; tasksList.innerHTML='<div class="empty">No tasks yet — parse an email to auto-generate tasks.</div>'; peopleList.innerHTML=''; updateCounts(); })
+
+  sampleBtn.addEventListener('click', ()=>{ emailInput.value = `Hi team,\n\nPlease review the Q3 marketing deck and send feedback by Friday, Oct 10. Assign content updates to Rahul and design tweaks to Priya. Also, arrange a client call next Wednesday (Oct 14) with the Sales team. Raj should share the latest numbers by 2025-10-08. Urgent: finalize the budget estimate by 2025-10-06.\n\nThanks,\nAnita\nanita@company.com`; })
+
+  exportJson.addEventListener('click', ()=>{
+    // gather info
+    const tasks = Array.from(tasksList.querySelectorAll('.task')).map(t=>({title:t.querySelector('.title').innerText, deadline:t.querySelector('.badge').innerText, priority:t.querySelectorAll('.badge')[1]?.innerText||'', people: Array.from(t.querySelectorAll('.avatar')).map(a=>a.innerText)}));
+    const payload = {summary:summaryText.innerText, tasks, people: Array.from(peopleList.querySelectorAll('.avatar')).map(a=>a.innerText), source: emailInput.value};
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='email_tasks.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  })
+
+  copyTasks.addEventListener('click', ()=>{
+    const tasks = Array.from(tasksList.querySelectorAll('.task')).map((t,i)=>`${i+1}. ${t.querySelector('.title').innerText} — ${t.querySelector('.badge').innerText} — ${Array.from(t.querySelectorAll('.avatar')).map(a=>a.innerText).join(', ')}`);
+    navigator.clipboard.writeText(tasks.join('\n')).then(()=>{ alert('Tasks copied to clipboard!') }).catch(()=>{ alert('Unable to copy.') })
+  })
+
+  // initial counts
+  updateCounts();
+</script>
+</body>
+</html>
